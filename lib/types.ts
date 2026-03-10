@@ -60,3 +60,66 @@ export interface DashboardMetrics {
   monthlyGrowth: number;
   customerSatisfaction: number;
 }
+
+// ─── Cart ──────────────────────────────────────────────────────────────────────
+
+export interface CartCustomization {
+  assetId: string;
+  assetName: string;
+  assetCategory: string;
+  assetPrice: number;
+}
+
+export interface CartItem {
+  vehicleId: string;
+  vehicleName: string;
+  vehicleModel: string;
+  brandName: string;
+  thumbnail: string;
+  basePrice: number;
+  customizations: CartCustomization[];
+  customizationTotal: number;
+  itemTotal: number;
+}
+
+// ─── Order ─────────────────────────────────────────────────────────────────────
+
+export interface ShippingAddress {
+  fullName: string;
+  email: string;
+  phone: string;
+  address: string;
+  city: string;
+  state: string;
+  zipCode: string;
+  country: string;
+}
+
+export type OrderStatus = 'pending' | 'confirmed' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
+export type PaymentStatus = 'pending' | 'paid' | 'failed' | 'refunded';
+
+export interface Order {
+  _id: string;
+  orderNumber: string;
+  userId: string | { _id: string; name: string; email: string };
+  items: CartItem[];
+  shippingAddress: ShippingAddress;
+  subtotal: number;
+  tax: number;
+  shippingCost: number;
+  total: number;
+  status: OrderStatus;
+  paymentStatus: PaymentStatus;
+  paymentMethod: string;
+  notes?: string;
+  estimatedDelivery?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface OrderStats {
+  statusCounts: Record<OrderStatus, number>;
+  totalRevenue: number;
+  totalOrders: number;
+  recentOrders: Order[];
+}

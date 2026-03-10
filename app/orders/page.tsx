@@ -1,0 +1,119 @@
+'use client';
+
+import { useEffect, useState } from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { ShoppingBag, ArrowRight, Clock, CheckCircle2, Truck, PackageSearch, XCircle } from 'lucide-react';
+import { OrderAPI } from '../../lib/api/orders';
+import { useAuth } from '../../contexts/AuthContext';
+import { Button } from '../../components/ui/button';
+import { Badge } from '../../components/ui/badge';
+import { Card, CardContent } from '../../components/ui/card';
+import type { Order, OrderStatus } from '../../lib/types';
+
+const STATUS_CONFIG: Record<OrderStatus, { label: string; color: string; icon: React.ElementType }> = {
+  pending:    { label: 'Pending',    color: 'bg-yellow-100 text-yellow-800 border-yellow-200',  icon: Clock },
+  confirmed:  { label: 'Confirmed',  color: 'bg-blue-100 text-blue-800 border-blue-200',        icon: CheckCircle2 },
+  processing: { label: 'Processing', color: 'bg-purple-100 text-purple-800 border-purple-200',  icon: PackageSearch },
+  shipped:    { label: 'Shipped',    color: 'bg-indigo-100 text-indigo-800 border-indigo-200',  icon: Truck },
+  delivered:  { label: 'Delivered',  color: 'bg-green-100 text-green-800 border-green-200',     icon: CheckCircle2 },
+  cancelled:  { label: 'Cancelled',  color: 'bg-red-100 text-red-800 border-red-200',           icon: XCircle },
+};
+
+function PriceFmt({ value }: { value: number }) {
+  return <>${value.toLocaleString('en-US', { minimumFractionDigits: 0 })}</>;
+}
+
+function StatusBadge({ status }: { status: OrderStatus }) {
+  const cfg = STATUS_CONFIG[status] ?? STATUS_CONFIG.pending;
+  const Icon = cfg.icon;
+  return (
+    <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium border ${cfg.color}`}>
+      <Icon className="w-3.5 h-3.5" />
+      {cfg.label}
+    </span>
+  );
+}
+
+export default function OrdersPage() {
+  const router = useRouter();
+  const { isAuthenticated, loading: authLoading } = useAuth();
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (authLoading) return;
+    if (!isAuthenticated) {
+      router.push('/login?redirect=/orders');
+      return;
+    }
+    OrderAPI.getMyOrders()
+      .then((res) => setOrders(res.data))
+      .catch((err) => setError(err.message))
+      .finally(() => setLoading(false));
+  }, [isAuthenticated, authLoading, router]);
+
+  if (authLoading || loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary" />
+      </div>
+    );
+  }
+
+  return (
+    <main className="min-h-screen bg-background">
+      <div className="container max-w-3xl mx-auto px-4 py-8">
+        <div className="flex items-center justify-between mb-8">
+          <h1 className="text-3xl font-bold">My Orders</h1>
+          <Link href="/vehicles"><Button variant="outline" size="sm">Browse Vehicles</Button></Link>
+        </div>
+
+        {error && <p className="text-destructive text-sm mb-4">{error}</p>}
+
+        {orders.length === 0 ? (
+          <div className="text-center py-20 space-y-3">
+            <ShoppingBag className="w-16 h-16 text-muted-foreground/30 mx-auto" />
+            <p className="text-lg font-medium">No orders yet</p>
+            <p className="text-sm text-muted-foreground">Your order history will appear here</p>
+            <Link href="/vehicles"><Button className="mt-2">Shop Now</Button></Link>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {orders.map((order) => (
+              <Card key={order._id} className="hover:shadow-md transition-shadow">
+                <CardContent className="p-5">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div className="space-y-1">
+                      <p className="font-bold">{order.orderNumber}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {new Date(order.createdAt).toLocaleDateString('en-US', { dateStyle: 'medium' })}
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        {order.items.length} {order.items.length === 1 ? 'vehicle' : 'vehicles'}
+                        {' · '}
+                        {order.items.map(i => i.vehicleName).join(', ')}
+                      </p>
+                    </div>
+                    <div className="flex flex-col items-end gap-2">
+                      <StatusBadge status={order.status} />
+                      <p className="font-bold text-lg"><PriceFmt value={order.total} /></p>
+                    </div>
+                  </div>
+                  <div className="mt-4 flex justify-end">
+                    <Link href={`/orders/${order._id}`}>
+                      <Button variant="ghost" size="sm" className="gap-1">
+                        View Details <ArrowRight className="w-3.5 h-3.5" />
+                      </Button>
+                    </Link>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
+      </div>
+    </main>
+  );
+}

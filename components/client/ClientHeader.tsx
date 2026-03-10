@@ -3,9 +3,10 @@
 import Link from 'next/link';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Menu, X, User, LogOut, Settings } from 'lucide-react';
+import { Menu, X, User, LogOut, Settings, ShoppingCart, ShoppingBag } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
+import { useCart } from '@/contexts/CartContext';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -18,6 +19,7 @@ import {
 export function ClientHeader() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { user, logout, isAuthenticated, isAdmin } = useAuth();
+  const { cartCount, openCart } = useCart();
   const router = useRouter();
 
   const handleLogout = () => {
@@ -69,7 +71,20 @@ export function ClientHeader() {
         </div>
 
         {/* CTA and Menu Button */}
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2">
+          {/* Cart button */}
+          <button
+            onClick={openCart}
+            className="relative p-2 hover:bg-muted rounded-lg transition-colors"
+            aria-label="Open cart"
+          >
+            <ShoppingCart className="w-5 h-5" />
+            {cartCount > 0 && (
+              <span className="absolute -top-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
+                {cartCount}
+              </span>
+            )}
+          </button>
           {isAuthenticated ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -95,6 +110,10 @@ export function ClientHeader() {
                     Admin Dashboard
                   </DropdownMenuItem>
                 )}
+                <DropdownMenuItem onClick={() => router.push('/orders')}>
+                  <ShoppingBag className="w-4 h-4 mr-2" />
+                  My Orders
+                </DropdownMenuItem>
                 <DropdownMenuItem onClick={handleLogout}>
                   <LogOut className="w-4 h-4 mr-2" />
                   Logout

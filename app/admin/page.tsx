@@ -8,10 +8,11 @@ import { OverviewDashboard } from '@/components/admin/OverviewDashboard';
 import { BrandManagement } from '@/components/admin/BrandManagement';
 import { VehicleManagement } from '@/components/admin/VehicleManagement';
 import { AnalyticsDashboard } from '@/components/admin/AnalyticsDashboard';
-import { AssetManagement } from '@/components/admin/AssetManagement'; // Added import for AssetManagement
+import { AssetManagement } from '@/components/admin/AssetManagement';
+import { OrderManagement } from '@/components/admin/OrderManagement';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 
-type SectionType = 'overview' | 'brands' | 'vehicles' | 'assets' | 'analytics';
+type SectionType = 'overview' | 'brands' | 'vehicles' | 'assets' | 'analytics' | 'orders';
 
 const sectionConfig: Record<
   SectionType,
@@ -40,6 +41,16 @@ const sectionConfig: Record<
     title: 'Analytics & Reports',
     description: 'Detailed analytics and performance metrics',
     component: AnalyticsDashboard,
+  },
+  assets: {
+    title: 'Asset Management',
+    description: 'Manage customization assets and components',
+    component: AssetManagement,
+  },
+  orders: {
+    title: 'Order Management',
+    description: 'Track and manage customer orders',
+    component: OrderManagement,
   },
 };
 

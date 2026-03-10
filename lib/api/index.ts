@@ -3,3 +3,4 @@ export * from './brands';
 export * from './vehicles';
 export * from './assets';
 export * from './analytics';
+export * from './orders';

@@ -17,6 +17,8 @@ import {
   X,
   LogOut,
   Home,
+  Layers,
+  ShoppingBag,
 } from 'lucide-react';
 
 interface NavItem {
@@ -50,6 +52,18 @@ const navItems: NavItem[] = [
     href: '#analytics',
     icon: <BarChart3 className="w-5 h-5" />,
     id: 'analytics',
+  },
+  {
+    label: 'Assets',
+    href: '#assets',
+    icon: <Layers className="w-5 h-5" />,
+    id: 'assets',
+  },
+  {
+    label: 'Orders',
+    href: '#orders',
+    icon: <ShoppingBag className="w-5 h-5" />,
+    id: 'orders',
   },
 ];
 

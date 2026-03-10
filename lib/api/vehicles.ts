@@ -49,10 +49,16 @@ export const uploadVehicleModel = async (file: File): Promise<{ filename: string
   const formData = new FormData();
   formData.append('model', file);
 
+  // Must manually add the auth token — can't use fetcher() because FormData
+  // requires the browser to set Content-Type (with multipart boundary) itself.
+  const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+
   const response = await fetch(API_ENDPOINTS.uploadVehicleModel, {
     method: 'POST',
     body: formData,
-    // Don't set Content-Type header - browser will set it with boundary for FormData
+    headers: {
+      ...(token && { Authorization: `Bearer ${token}` }),
+    },
   });
 
   const data = await response.json();

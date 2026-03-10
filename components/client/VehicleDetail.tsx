@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
+import { useCart } from '@/contexts/CartContext';
 
 declare global {
   namespace JSX {
@@ -21,6 +22,7 @@ interface VehicleDetailProps {
 }
 
 export function VehicleDetail({ vehicleId }: VehicleDetailProps) {
+  const { addToCart } = useCart();
   const [vehicle, setVehicle] = useState<Vehicle | null>(null);
   const [brand, setBrand] = useState<Brand | null>(null);
   const [assets, setAssets] = useState<CustomizationAsset[]>([]);
@@ -56,13 +58,13 @@ export function VehicleDetail({ vehicleId }: VehicleDetailProps) {
       
       // Load the 3D model from the vehicle's modelUrl
       if (vehicleData.modelUrl) {
-        // If modelUrl is a relative path, prepend the backend base URL (without /api)
-        const backendBaseUrl = process.env.NEXT_PUBLIC_API_URL 
-          ? process.env.NEXT_PUBLIC_API_URL.replace('/api', '')
-          : 'http://localhost:5000';
-        const modelUrl = vehicleData.modelUrl.startsWith('http') 
-          ? vehicleData.modelUrl 
-          : `${backendBaseUrl}${vehicleData.modelUrl}`;
+        // Absolute URLs (http/https) are used as-is.
+        // Relative paths like /models/file.glb are saved by the backend into
+        // Frontend/public/models/ and served by Next.js — so resolve them
+        // against the frontend origin, not the backend URL.
+        const modelUrl = vehicleData.modelUrl.startsWith('http')
+          ? vehicleData.modelUrl
+          : `${window.location.origin}${vehicleData.modelUrl}`;
         
         console.log('Loading model from:', modelUrl);
         
@@ -678,7 +680,28 @@ export function VehicleDetail({ vehicleId }: VehicleDetailProps) {
                 </div>
               </div>
 
-              <Button size="lg" className="w-full bg-primary hover:bg-primary/90 text-primary-foreground">
+              <Button size="lg" className="w-full bg-primary hover:bg-primary/90 text-primary-foreground" onClick={() => {
+                if (!vehicle || !brand) return;
+                const customizations = [];
+                const selectedWheelData = wheels.find(w => w.id === selectedWheels);
+                if (selectedWheelData && selectedWheelData.price > 0) {
+                  customizations.push({ assetId: selectedWheelData.id, assetName: selectedWheelData.name, assetCategory: 'wheels', assetPrice: selectedWheelData.price });
+                }
+                const selectedSpoilerData = spoilers.find(s => s.id === selectedSpoiler);
+                if (selectedSpoilerData && selectedSpoilerData.price > 0) {
+                  customizations.push({ assetId: selectedSpoilerData.id, assetName: selectedSpoilerData.name, assetCategory: 'exterior', assetPrice: selectedSpoilerData.price });
+                }
+                addToCart({
+                  vehicleId: vehicle.id,
+                  vehicleName: vehicle.name,
+                  vehicleModel: vehicle.vehicleModel,
+                  brandName: brand.name,
+                  thumbnail: vehicle.thumbnail || '',
+                  basePrice: vehicle.basePrice,
+                  customizations,
+                });
+                toast.success(`${vehicle.name} added to cart!`);
+              }}>
                 Add to Cart
               </Button>
               <Button size="lg" variant="outline" className="w-full border-border bg-transparent">

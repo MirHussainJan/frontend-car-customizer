@@ -4,6 +4,7 @@ import { Analytics } from '@vercel/analytics/next'
 import { Toaster } from 'sonner'
 import { ThemeProvider } from '@/components/theme-provider'
 import { AuthProvider } from '@/contexts/AuthContext'
+import { CartProvider } from '@/contexts/CartContext'
 import './globals.css'
 
 export const metadata: Metadata = {
@@ -45,7 +46,9 @@ export default function RootLayout({
       <body className={`font-sans antialiased`}>
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
           <AuthProvider>
-            {children}
+            <CartProvider>
+              {children}
+            </CartProvider>
             <Toaster position="top-right" richColors />
           </AuthProvider>
         </ThemeProvider>
