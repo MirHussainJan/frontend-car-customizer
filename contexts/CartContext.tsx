@@ -10,8 +10,8 @@ interface CartContextValue {
   isOpen: boolean;
   openCart: () => void;
   closeCart: () => void;
-  addToCart: (item: Omit<CartItem, 'customizationTotal' | 'itemTotal'> & { customizations?: CartCustomization[] }) => void;
-  removeFromCart: (vehicleId: string) => void;
+  addToCart: (item: Omit<CartItem, 'customizationTotal' | 'itemTotal'> & { customizations?: CartCustomization[]; quantity?: number }) => void;
+  removeFromCart: (itemId: string) => void;
   clearCart: () => void;
 }
 
@@ -37,21 +37,38 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   }, [items]);
 
   const cartTotal = items.reduce((acc, item) => acc + item.itemTotal, 0);
-  const cartCount = items.length;
+  const cartCount = items.reduce((acc, item) => acc + item.quantity, 0);
 
   const addToCart = useCallback(
-    (raw: Omit<CartItem, 'customizationTotal' | 'itemTotal'> & { customizations?: CartCustomization[] }) => {
+    (raw: Omit<CartItem, 'customizationTotal' | 'itemTotal'> & { customizations?: CartCustomization[]; quantity?: number }) => {
       const customizations = raw.customizations ?? [];
-      const customizationTotal = customizations.reduce((acc, c) => acc + (c.assetPrice ?? 0), 0);
-      const itemTotal = raw.basePrice + customizationTotal;
+      const quantity = raw.quantity ?? 1;
+      const customizationTotal = customizations.reduce((acc, c) => acc + (c.assetPrice ?? 0), 0) * quantity;
+      const itemTotal = (raw.basePrice * quantity) + customizationTotal;
 
-      const newItem: CartItem = { ...raw, customizations, customizationTotal, itemTotal };
+      const newItem: CartItem = { ...raw, quantity, customizations, customizationTotal, itemTotal };
 
       setItems((prev) => {
-        // Replace if same vehicle already in cart
-        const exists = prev.find((i) => i.vehicleId === raw.vehicleId);
+        const exists = prev.find((i) => i.itemId === raw.itemId && i.itemType === raw.itemType);
         if (exists) {
-          return prev.map((i) => (i.vehicleId === raw.vehicleId ? newItem : i));
+          if (raw.itemType === 'accessory') {
+            return prev.map((item) => {
+              if (item.itemId !== raw.itemId || item.itemType !== raw.itemType) return item;
+
+              const mergedQuantity = item.quantity + quantity;
+              const mergedCustomizationTotal = customizations.reduce((acc, c) => acc + (c.assetPrice ?? 0), 0) * mergedQuantity;
+
+              return {
+                ...item,
+                quantity: mergedQuantity,
+                customizations,
+                customizationTotal: mergedCustomizationTotal,
+                itemTotal: (item.basePrice * mergedQuantity) + mergedCustomizationTotal,
+              };
+            });
+          }
+
+          return prev.map((item) => (item.itemId === raw.itemId && item.itemType === raw.itemType ? newItem : item));
         }
         return [...prev, newItem];
       });
@@ -60,8 +77,8 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     []
   );
 
-  const removeFromCart = useCallback((vehicleId: string) => {
-    setItems((prev) => prev.filter((i) => i.vehicleId !== vehicleId));
+  const removeFromCart = useCallback((itemId: string) => {
+    setItems((prev) => prev.filter((i) => i.itemId !== itemId));
   }, []);
 
   const clearCart = useCallback(() => {

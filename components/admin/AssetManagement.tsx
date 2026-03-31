@@ -17,6 +17,7 @@ import { toast } from 'sonner';
 
 interface EditingAsset extends Partial<CustomizationAsset> {
   isNew?: boolean;
+  compatibility?: string[];
 }
 
 const categories = ['paint', 'wheels', 'interior', 'exterior', 'performance'];
@@ -68,6 +69,13 @@ export function AssetManagement() {
     return matchesSearch && matchesCategory;
   });
 
+  const getCompatibilityIds = (asset?: Partial<CustomizationAsset> & { compatibility?: Array<string | { id?: string }> }) => {
+    return (asset?.compatibility || []).map((entry) => {
+      if (typeof entry === 'string') return entry;
+      return entry.id || '';
+    }).filter(Boolean);
+  };
+
   const handleAddAsset = () => {
     setEditingAsset({
       name: '',
@@ -82,7 +90,10 @@ export function AssetManagement() {
   };
 
   const handleEditAsset = (asset: CustomizationAsset) => {
-    setEditingAsset(asset);
+    setEditingAsset({
+      ...asset,
+      compatibility: getCompatibilityIds(asset),
+    });
     setIsModalOpen(true);
   };
 
@@ -106,12 +117,20 @@ export function AssetManagement() {
       setIsSaving(true);
       if (editingAsset.isNew) {
         const { isNew, id, createdAt, updatedAt, ...assetData } = editingAsset;
-        const newAsset = await createAsset(assetData as Omit<CustomizationAsset, 'id' | 'createdAt' | 'updatedAt'>);
+        const payload = {
+          ...assetData,
+          compatibility: getCompatibilityIds(editingAsset),
+        };
+        const newAsset = await createAsset(payload as Omit<CustomizationAsset, 'id' | 'createdAt' | 'updatedAt'>);
         setAssets([...assets, newAsset]);
         toast.success('Asset created successfully');
       } else if (editingAsset.id) {
         const { isNew, ...assetData } = editingAsset;
-        const updatedAssetData = await updateAsset(editingAsset.id, assetData);
+        const payload = {
+          ...assetData,
+          compatibility: getCompatibilityIds(editingAsset),
+        };
+        const updatedAssetData = await updateAsset(editingAsset.id, payload);
         setAssets(assets.map((a) => (a.id === editingAsset.id ? updatedAssetData : a)));
         toast.success('Asset updated successfully');
       }
@@ -129,9 +148,10 @@ export function AssetManagement() {
   const toggleVehicleCompatibility = (vehicleId: string) => {
     if (!editingAsset) return;
 
-    const compatibility = editingAsset.compatibility?.includes(vehicleId)
-      ? editingAsset.compatibility.filter((id) => id !== vehicleId)
-      : [...(editingAsset.compatibility || []), vehicleId];
+    const compatibilityIds = getCompatibilityIds(editingAsset);
+    const compatibility = compatibilityIds.includes(vehicleId)
+      ? compatibilityIds.filter((id) => id !== vehicleId)
+      : [...compatibilityIds, vehicleId];
 
     setEditingAsset({
       ...editingAsset,
@@ -245,13 +265,14 @@ export function AssetManagement() {
                 </p>
                 <div className="flex flex-wrap gap-1">
                   {asset.compatibility.map((vehicleId) => {
-                    const vehicle = vehicles.find((v) => v.id === vehicleId);
+                    const compatibilityId = typeof vehicleId === 'string' ? vehicleId : vehicleId.id;
+                    const compatibilityName = typeof vehicleId === 'string' ? vehicles.find((v) => v.id === vehicleId)?.name : vehicleId.name;
                     return (
                       <span
-                        key={vehicleId}
+                        key={compatibilityId}
                         className="text-xs bg-muted text-foreground px-2 py-1 rounded"
                       >
-                        {vehicle?.name}
+                        {compatibilityName}
                       </span>
                     );
                   })}
@@ -388,7 +409,7 @@ export function AssetManagement() {
                     >
                       <input
                         type="checkbox"
-                        checked={editingAsset.compatibility.includes(vehicle.id)}
+                        checked={getCompatibilityIds(editingAsset).includes(vehicle.id)}
                         onChange={() => toggleVehicleCompatibility(vehicle.id)}
                         className="w-4 h-4 rounded border-border cursor-pointer"
                       />

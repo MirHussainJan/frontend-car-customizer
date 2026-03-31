@@ -57,8 +57,8 @@ export default function CheckoutPage() {
       <div className="min-h-screen flex flex-col items-center justify-center gap-4">
         <ShoppingBag className="w-16 h-16 text-muted-foreground/40" />
         <p className="text-lg font-medium">Your cart is empty</p>
-        <Link href="/vehicles">
-          <Button variant="outline">Browse Vehicles</Button>
+        <Link href="/shop">
+          <Button variant="outline">Continue Shopping</Button>
         </Link>
       </div>
     );
@@ -95,8 +95,8 @@ export default function CheckoutPage() {
   return (
     <main className="min-h-screen bg-background">
       <div className="container max-w-5xl mx-auto px-4 py-8">
-        <Link href="/vehicles" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-6">
-          <ArrowLeft className="w-4 h-4" /> Back to Vehicles
+        <Link href="/shop" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-6">
+          <ArrowLeft className="w-4 h-4" /> Back to Shop
         </Link>
         <h1 className="text-3xl font-bold mb-8">Checkout</h1>
 
@@ -160,11 +160,17 @@ export default function CheckoutPage() {
                 </CardHeader>
                 <CardContent className="space-y-3">
                   {items.map((item) => (
-                    <div key={item.vehicleId}>
+                    <div key={`${item.itemType}-${item.itemId}`}>
                       <div className="flex justify-between text-sm">
-                        <span className="font-medium truncate mr-2">{item.vehicleName}</span>
-                        <span className="shrink-0"><PriceFmt value={item.basePrice} /></span>
+                        <span className="font-medium truncate mr-2">
+                          {item.name}
+                          {item.quantity > 1 ? ` x ${item.quantity}` : ''}
+                        </span>
+                        <span className="shrink-0"><PriceFmt value={item.basePrice * item.quantity} /></span>
                       </div>
+                      {item.subtitle && (
+                        <div className="text-xs text-muted-foreground mt-0.5">{item.subtitle}</div>
+                      )}
                       {item.customizations.length > 0 && (
                         <div className="text-xs text-muted-foreground mt-0.5">
                           +{item.customizations.length} customization{item.customizations.length > 1 ? 's' : ''} (<PriceFmt value={item.customizationTotal} />)

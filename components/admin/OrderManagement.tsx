@@ -246,9 +246,9 @@ export function OrderManagement() {
                   {selectedOrder.items.map((item, i) => (
                     <div key={i} className="flex justify-between text-sm">
                       <div>
-                        <p>{item.vehicleName}</p>
+                        <p>{item.name}{item.quantity > 1 ? ` x ${item.quantity}` : ''}</p>
                         <p className="text-xs text-muted-foreground">
-                          {item.brandName} · {item.vehicleModel}
+                          {item.subtitle || (item.itemType === 'accessory' ? 'Accessory' : 'Vehicle')}
                           {item.customizations.length > 0 && ` · ${item.customizations.length} customizations`}
                         </p>
                       </div>

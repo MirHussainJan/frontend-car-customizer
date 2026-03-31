@@ -3,19 +3,13 @@
 import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { useCart } from '@/contexts/CartContext';
-
-declare global {
-  namespace JSX {
-    interface IntrinsicElements {
-      'model-viewer': any;
-    }
-  }
-}
-import { ChevronLeft, ChevronRight, Heart, Share2, Download, RotateCw, Loader2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Heart, Download, RotateCw, Loader2 } from 'lucide-react';
 import { getVehicleById, getBrandById, getAllAssets } from '@/lib/api';
 import { Vehicle, Brand, CustomizationAsset } from '@/lib/types';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
+
+const ModelViewer: any = 'model-viewer';
 
 interface VehicleDetailProps {
   vehicleId: string;
@@ -29,14 +23,15 @@ export function VehicleDetail({ vehicleId }: VehicleDetailProps) {
   const [isLoading, setIsLoading] = useState(true);
 
   const [isLiked, setIsLiked] = useState(false);
-  const [selectedColor, setSelectedColor] = useState('#C41E3A');
+  const [selectedColor, setSelectedColor] = useState('#B2162E');
+  const [selectedWheelColor, setSelectedWheelColor] = useState('#5E6673');
+  const [selectedSpoilerColor, setSelectedSpoilerColor] = useState('#1E1E1E');
   const [selectedWheels, setSelectedWheels] = useState('premium-alloy');
   const [selectedSpoiler, setSelectedSpoiler] = useState('sport');
   const [modelRotation, setModelRotation] = useState(0);
   
   // 3D Model states
   const [materials, setMaterials] = useState<any[]>([]);
-  const [selectedMaterialIndex, setSelectedMaterialIndex] = useState(0);
   const [wheelMaterials, setWheelMaterials] = useState<any[]>([]);
   const [spoilerMaterials, setSpoilerMaterials] = useState<any[]>([]);
   const [selectedWheelIndex, setSelectedWheelIndex] = useState(0);
@@ -45,6 +40,8 @@ export function VehicleDetail({ vehicleId }: VehicleDetailProps) {
   
   const modelViewerRef = useRef<any>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const wheelCarouselRef = useRef<HTMLDivElement>(null);
+  const spoilerCarouselRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     loadVehicleData();
@@ -93,12 +90,26 @@ export function VehicleDetail({ vehicleId }: VehicleDetailProps) {
   };
 
   const paintColors = [
-    { name: 'Racing Red', hex: '#C41E3A' },
-    { name: 'Midnight Black', hex: '#1a1a1a' },
-    { name: 'Glacier White', hex: '#f5f5f5' },
-    { name: 'Ocean Blue', hex: '#0066cc' },
-    { name: 'Silver Storm', hex: '#c0c0c0' },
-    { name: 'Gold Metallic', hex: '#ffd700' },
+    { name: 'Rosso Corsa', hex: '#B2162E' },
+    { name: 'Jet Black', hex: '#151515' },
+    { name: 'Arctic White', hex: '#F2F4F7' },
+    { name: 'Sapphire Blue', hex: '#0A4FA3' },
+    { name: 'Graphite Grey', hex: '#4A4F57' },
+    { name: 'British Racing Green', hex: '#124734' },
+  ];
+
+  const wheelColors = [
+    { name: 'Gunmetal', hex: '#5E6673' },
+    { name: 'Gloss Black', hex: '#111317' },
+    { name: 'Aluminum Silver', hex: '#A7AEB8' },
+    { name: 'Bronze', hex: '#8C6239' },
+  ];
+
+  const spoilerColors = [
+    { name: 'Carbon Black', hex: '#1E1E1E' },
+    { name: 'Body Match Red', hex: '#B2162E' },
+    { name: 'Satin Silver', hex: '#9AA0A8' },
+    { name: 'Stealth Grey', hex: '#3F434A' },
   ];
 
   const wheels = [
@@ -137,7 +148,6 @@ export function VehicleDetail({ vehicleId }: VehicleDetailProps) {
     if (file && (file.name.endsWith('.glb') || file.name.endsWith('.gltf'))) {
       const url = URL.createObjectURL(file);
       setModelSrc(url);
-      setSelectedMaterialIndex(0);
       setWheelMaterials([]);
       setSpoilerMaterials([]);
       setSelectedWheelIndex(0);
@@ -165,34 +175,51 @@ export function VehicleDetail({ vehicleId }: VehicleDetailProps) {
     console.log('Spoiler selected:', spoilerMaterials[index]?.name);
   };
 
-  const changeColor = (index: number, color: any) => {
-    if (materials.length === 0 || index < 0 || index >= materials.length) return;
-    
-    // Convert hex color string to RGBA array if needed
-    if (typeof color === 'string') {
-      const canvas = document.createElement('canvas');
-      canvas.width = canvas.height = 1;
-      const ctx = canvas.getContext('2d');
-      if (ctx) {
-        ctx.fillStyle = color;
-        ctx.fillRect(0, 0, 1, 1);
-        const [r, g, b] = ctx.getImageData(0, 0, 1, 1).data;
-        color = [r / 255, g / 255, b / 255, 1];
-      } else {
-        color = [1, 1, 1, 1];
-      }
-    }
-    
-    materials[index].pbrMetallicRoughness.setBaseColorFactor(color);
+  const hexToRgba = (hex: string) => {
+    const canvas = document.createElement('canvas');
+    canvas.width = canvas.height = 1;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return [1, 1, 1, 1];
+
+    ctx.fillStyle = hex;
+    ctx.fillRect(0, 0, 1, 1);
+    const [r, g, b] = ctx.getImageData(0, 0, 1, 1).data;
+    return [r / 255, g / 255, b / 255, 1];
   };
 
-  const resetColor = (index: number) => {
-    changeColor(index, [1, 1, 1, 1]); // White multiplier (original color)
+  const applyColorToMaterial = (material: any, hex: string) => {
+    if (!material?.pbrMetallicRoughness?.setBaseColorFactor) return;
+    material.pbrMetallicRoughness.setBaseColorFactor(hexToRgba(hex));
   };
 
-  const resetAllColors = () => {
-    materials.forEach((material) => {
-      material.pbrMetallicRoughness.setBaseColorFactor([1, 1, 1, 1]);
+  const applyColorToMaterials = (targetMaterials: any[], hex: string) => {
+    if (!targetMaterials.length) return;
+    targetMaterials.forEach((material) => applyColorToMaterial(material, hex));
+  };
+
+  const getBodyMaterials = () => {
+    return materials.filter((m: any) => String(m.name || '').trim().toLowerCase() === 'car');
+  };
+
+  const getDefaultColorForMaterial = (name: string) => {
+    const materialName = String(name || '').trim().toLowerCase();
+
+    if (materialName === 'car') return '#B2162E';
+    if (materialName.includes('rubber') || materialName.includes('tire') || materialName.includes('tyre')) return '#1C1C1C';
+    if (materialName.includes('opaque glass') || materialName.includes('mirror')) return '#6E7681';
+    if (materialName.includes('glass')) return '#9FB6CC';
+    if (materialName.includes('wheel') || materialName.includes('rim')) return '#5E6673';
+    if (materialName.includes('spoiler')) return '#1E1E1E';
+
+    return '#B9BEC6';
+  };
+
+  const scrollCarousel = (ref: React.RefObject<HTMLDivElement | null>, direction: 'left' | 'right') => {
+    if (!ref.current) return;
+    const step = 260;
+    ref.current.scrollBy({
+      left: direction === 'left' ? -step : step,
+      behavior: 'smooth',
     });
   };
 
@@ -218,6 +245,11 @@ export function VehicleDetail({ vehicleId }: VehicleDetailProps) {
       console.log('🎨 Total materials count:', loadedMaterials.length);
       console.log('📋 All materials:', loadedMaterials);
       console.log('📝 Material names:', loadedMaterials.map((m: any) => m.name));
+
+        loadedMaterials.forEach((material: any) => {
+          applyColorToMaterial(material, getDefaultColorForMaterial(material.name));
+        });
+        console.log('🎨 Applied default colors to all materials');
       
       if (isMounted) {
         setMaterials(loadedMaterials);
@@ -233,10 +265,9 @@ export function VehicleDetail({ vehicleId }: VehicleDetailProps) {
         setSpoilerMaterials(spoilers);
         console.log(`🎡 Wheels found (${wheels.length}):`, wheels.map((m: any) => m.name));
         console.log(`🚗 Spoilers found (${spoilers.length}):`, spoilers.map((m: any) => m.name));
-        
+
         if (loadedMaterials.length > 0) {
-          setSelectedMaterialIndex(0);
-          console.log('✅ First material selected:', loadedMaterials[0].name);
+          console.log('✅ Body materials detected:', loadedMaterials[0].name);
         } else {
           console.warn('⚠️ No materials found in the GLB model!');
         }
@@ -327,8 +358,10 @@ export function VehicleDetail({ vehicleId }: VehicleDetailProps) {
           {/* 3D Customizer Section */}
           <div className="space-y-4">
             <div className="relative h-96 lg:h-[500px] rounded-xl border border-border bg-card overflow-hidden">
+              <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.18),transparent_45%),linear-gradient(135deg,rgba(255,255,255,0.06),transparent_55%),linear-gradient(180deg,rgba(0,0,0,0),rgba(0,0,0,0.08))]" />
+              <div className="absolute inset-x-10 bottom-4 h-14 rounded-full bg-black/10 blur-3xl" />
               {modelSrc ? (
-                <model-viewer
+                <ModelViewer
                   ref={modelViewerRef}
                   src={modelSrc}
                   ar
@@ -348,7 +381,7 @@ export function VehicleDetail({ vehicleId }: VehicleDetailProps) {
                   >
                     View in AR
                   </Button>
-                </model-viewer>
+                </ModelViewer>
               ) : (
                 <div className="h-full flex flex-col items-center justify-center gap-4">
                   <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-background to-accent/5" />
@@ -429,37 +462,6 @@ export function VehicleDetail({ vehicleId }: VehicleDetailProps) {
                   />
                 </button>
               </div>
-              <div className="flex gap-4">
-                <p className="text-3xl font-bold text-primary">${((vehicle.basePrice || vehicle.price || 0) / 1000).toFixed(0)}K</p>
-                <div className="flex gap-2">
-                  <Button size="sm" variant="outline" className="border-border bg-transparent">
-                    <Share2 className="w-4 h-4" />
-                  </Button>
-                  <Button size="sm" variant="outline" className="border-border bg-transparent">
-                    <Download className="w-4 h-4" />
-                  </Button>
-                </div>
-              </div>
-            </div>
-
-            {/* Specifications */}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="p-4 rounded-lg border border-border bg-card/50">
-                <p className="text-xs text-muted-foreground mb-2">Horsepower</p>
-                <p className="text-2xl font-bold text-foreground">{vehicle.specs?.horsepower || vehicle.horsepower || 0}</p>
-              </div>
-              <div className="p-4 rounded-lg border border-border bg-card/50">
-                <p className="text-xs text-muted-foreground mb-2">0-60 mph</p>
-                <p className="text-2xl font-bold text-foreground">{vehicle.specs?.zeroToSixty || vehicle.acceleration || 0}s</p>
-              </div>
-              <div className="p-4 rounded-lg border border-border bg-card/50">
-                <p className="text-xs text-muted-foreground mb-2">Torque</p>
-                <p className="text-2xl font-bold text-foreground">{vehicle.specs?.torque || vehicle.torque || 0} lb-ft</p>
-              </div>
-              <div className="p-4 rounded-lg border border-border bg-card/50">
-                <p className="text-xs text-muted-foreground mb-2">Top Speed</p>
-                <p className="text-2xl font-bold text-foreground">{vehicle.topSpeed || 0} mph</p>
-              </div>
             </div>
 
             {/* Customization Tabs */}
@@ -474,48 +476,15 @@ export function VehicleDetail({ vehicleId }: VehicleDetailProps) {
               <TabsContent value="paint" className="space-y-4 mt-4">
                 {materials.length > 0 && modelSrc ? (
                   <>
-                    <div>
-                      <label className="text-sm font-medium mb-2 block">Select Part:</label>
-                      <select
-                        value={selectedMaterialIndex}
-                        onChange={(e) => setSelectedMaterialIndex(parseInt(e.target.value))}
-                        className="w-full p-2 border rounded-md bg-background"
-                      >
-                        {materials.map((material, index) => (
-                          <option key={index} value={index}>
-                            {material.name || `Material ${index}`}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium mb-2 block">Choose Color:</label>
-                      <div className="flex gap-2 mb-3">
-                        <input
-                          type="color"
-                          onChange={(e) => {
-                            changeColor(selectedMaterialIndex, e.target.value);
-                            setSelectedColor(e.target.value);
-                          }}
-                          className="w-12 h-12 cursor-pointer rounded border"
-                        />
-                        <Button
-                          onClick={() => {
-                            resetAllColors();
-                          }}
-                          variant="outline"
-                          size="sm"
-                        >
-                          Reset All
-                        </Button>
-                      </div>
-                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      Choose a curated exterior paint color. The color is applied only to the part named Car.
+                    </p>
                     <div className="grid grid-cols-3 gap-3">
                       {paintColors.map(color => (
                         <button
                           key={color.hex}
                           onClick={() => {
-                            changeColor(selectedMaterialIndex, color.hex);
+                            applyColorToMaterials(getBodyMaterials(), color.hex);
                             setSelectedColor(color.hex);
                           }}
                           className={`p-4 rounded-lg border-2 transition-all ${
@@ -560,23 +529,78 @@ export function VehicleDetail({ vehicleId }: VehicleDetailProps) {
               <TabsContent value="wheels" className="space-y-4 mt-4">
                 {wheelMaterials.length > 0 && modelSrc ? (
                   <>
-                    <p className="text-sm text-muted-foreground mb-2">Select from detected wheel options:</p>
-                    <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm text-muted-foreground">Select from detected wheel options:</p>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => scrollCarousel(wheelCarouselRef, 'left')}
+                          className="p-2 rounded-md border border-border bg-card hover:bg-muted"
+                          aria-label="Scroll wheels left"
+                        >
+                          <ChevronLeft className="w-4 h-4" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => scrollCarousel(wheelCarouselRef, 'right')}
+                          className="p-2 rounded-md border border-border bg-card hover:bg-muted"
+                          aria-label="Scroll wheels right"
+                        >
+                          <ChevronRight className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                    <div
+                      ref={wheelCarouselRef}
+                      className="flex gap-3 overflow-x-auto snap-x snap-mandatory pb-2"
+                    >
                       {wheelMaterials.map((wheel, index) => (
                         <button
                           key={wheel.name || index}
                           onClick={() => selectWheel(index)}
-                          className={`w-full p-4 rounded-lg border-2 transition-all text-left ${
+                          className={`snap-start shrink-0 w-56 p-4 rounded-xl border-2 transition-all text-left ${
                             selectedWheelIndex === index
                               ? 'border-primary bg-primary/5'
                               : 'border-border hover:border-primary/50 bg-card/50'
                           }`}
                         >
-                          <div className="flex items-center justify-between">
-                            <p className="font-semibold text-foreground">{wheel.name || `Wheel ${index + 1}`}</p>
+                          <div className="flex items-center justify-center mb-3">
+                            <div className="relative w-20 h-20 rounded-full border-4 border-muted bg-gradient-to-br from-muted/20 to-muted/60">
+                              <div className="absolute inset-2 rounded-full border-2 border-foreground/40" />
+                              <div className="absolute inset-5 rounded-full bg-foreground/70" />
+                            </div>
                           </div>
+                          <p className="font-semibold text-foreground truncate">{wheel.name || `Wheel ${index + 1}`}</p>
+                          <p className="text-xs text-muted-foreground mt-1">3D wheel piece #{index + 1}</p>
                         </button>
                       ))}
+                    </div>
+                    <div className="pt-2">
+                      <p className="text-sm text-muted-foreground mb-2">Choose wheel finish:</p>
+                      <div className="grid grid-cols-2 gap-3">
+                        {wheelColors.map((color) => (
+                          <button
+                            key={color.hex}
+                            onClick={() => {
+                              if (wheelMaterials[selectedWheelIndex]) {
+                                applyColorToMaterial(wheelMaterials[selectedWheelIndex], color.hex);
+                                setSelectedWheelColor(color.hex);
+                              }
+                            }}
+                            className={`p-3 rounded-lg border-2 transition-all ${
+                              selectedWheelColor === color.hex
+                                ? 'border-primary bg-primary/5'
+                                : 'border-border hover:border-primary/50 bg-card/50'
+                            }`}
+                          >
+                            <div
+                              className="w-full h-6 rounded mb-2 border border-border"
+                              style={{ backgroundColor: color.hex }}
+                            />
+                            <p className="text-xs font-semibold text-foreground">{color.name}</p>
+                          </button>
+                        ))}
+                      </div>
                     </div>
                   </>
                 ) : (
@@ -605,35 +629,92 @@ export function VehicleDetail({ vehicleId }: VehicleDetailProps) {
               <TabsContent value="spoiler" className="space-y-4 mt-4">
                 {spoilerMaterials.length > 0 && modelSrc ? (
                   <>
-                    <p className="text-sm text-muted-foreground mb-2">Select from detected spoiler options:</p>
-                    <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm text-muted-foreground">Select from detected spoiler options:</p>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => scrollCarousel(spoilerCarouselRef, 'left')}
+                          className="p-2 rounded-md border border-border bg-card hover:bg-muted"
+                          aria-label="Scroll spoilers left"
+                        >
+                          <ChevronLeft className="w-4 h-4" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => scrollCarousel(spoilerCarouselRef, 'right')}
+                          className="p-2 rounded-md border border-border bg-card hover:bg-muted"
+                          aria-label="Scroll spoilers right"
+                        >
+                          <ChevronRight className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                    <div
+                      ref={spoilerCarouselRef}
+                      className="flex gap-3 overflow-x-auto snap-x snap-mandatory pb-2"
+                    >
                       <button
                         onClick={selectSpoilerNone}
-                        className={`w-full p-4 rounded-lg border-2 transition-all text-left ${
+                        className={`snap-start shrink-0 w-56 p-4 rounded-xl border-2 transition-all text-left ${
                           selectedSpoilerIndex === -1
                             ? 'border-primary bg-primary/5'
                             : 'border-border hover:border-primary/50 bg-card/50'
                         }`}
                       >
-                        <div className="flex items-center justify-between">
-                          <p className="font-semibold text-foreground">None</p>
+                        <div className="h-20 flex items-center justify-center mb-3">
+                          <div className="w-20 h-1 rounded-full bg-muted-foreground/60" />
                         </div>
+                        <p className="font-semibold text-foreground">None</p>
+                        <p className="text-xs text-muted-foreground mt-1">No spoiler piece</p>
                       </button>
                       {spoilerMaterials.map((spoiler, index) => (
                         <button
                           key={spoiler.name || index}
                           onClick={() => selectSpoilerByIndex(index)}
-                          className={`w-full p-4 rounded-lg border-2 transition-all text-left ${
+                          className={`snap-start shrink-0 w-56 p-4 rounded-xl border-2 transition-all text-left ${
                             selectedSpoilerIndex === index
                               ? 'border-primary bg-primary/5'
                               : 'border-border hover:border-primary/50 bg-card/50'
                           }`}
                         >
-                          <div className="flex items-center justify-between">
-                            <p className="font-semibold text-foreground">{spoiler.name || `Spoiler ${index + 1}`}</p>
+                          <div className="h-20 flex items-center justify-center mb-3">
+                            <div className="relative w-24 h-6">
+                              <div className="absolute bottom-0 left-0 right-0 h-2 rounded-full bg-foreground/70" />
+                              <div className="absolute top-0 left-4 right-4 h-2 rounded-full bg-foreground/40" />
+                            </div>
                           </div>
+                          <p className="font-semibold text-foreground truncate">{spoiler.name || `Spoiler ${index + 1}`}</p>
+                          <p className="text-xs text-muted-foreground mt-1">3D spoiler piece #{index + 1}</p>
                         </button>
                       ))}
+                    </div>
+                    <div className="pt-2">
+                      <p className="text-sm text-muted-foreground mb-2">Choose spoiler finish:</p>
+                      <div className="grid grid-cols-2 gap-3">
+                        {spoilerColors.map((color) => (
+                          <button
+                            key={color.hex}
+                            onClick={() => {
+                              if (selectedSpoilerIndex >= 0 && spoilerMaterials[selectedSpoilerIndex]) {
+                                applyColorToMaterial(spoilerMaterials[selectedSpoilerIndex], color.hex);
+                                setSelectedSpoilerColor(color.hex);
+                              }
+                            }}
+                            className={`p-3 rounded-lg border-2 transition-all ${
+                              selectedSpoilerColor === color.hex
+                                ? 'border-primary bg-primary/5'
+                                : 'border-border hover:border-primary/50 bg-card/50'
+                            }`}
+                          >
+                            <div
+                              className="w-full h-6 rounded mb-2 border border-border"
+                              style={{ backgroundColor: color.hex }}
+                            />
+                            <p className="text-xs font-semibold text-foreground">{color.name}</p>
+                          </button>
+                        ))}
+                      </div>
                     </div>
                   </>
                 ) : (
@@ -664,7 +745,7 @@ export function VehicleDetail({ vehicleId }: VehicleDetailProps) {
               <div className="space-y-2">
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Vehicle Base</span>
-                  <span className="text-foreground font-semibold">${(vehicle.price / 1000).toFixed(0)}K</span>
+                  <span className="text-foreground font-semibold">${(vehicle.basePrice / 1000).toFixed(0)}K</span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Wheels</span>
@@ -692,12 +773,13 @@ export function VehicleDetail({ vehicleId }: VehicleDetailProps) {
                   customizations.push({ assetId: selectedSpoilerData.id, assetName: selectedSpoilerData.name, assetCategory: 'exterior', assetPrice: selectedSpoilerData.price });
                 }
                 addToCart({
-                  vehicleId: vehicle.id,
-                  vehicleName: vehicle.name,
-                  vehicleModel: vehicle.vehicleModel,
-                  brandName: brand.name,
-                  thumbnail: vehicle.thumbnail || '',
+                  itemId: vehicle.id,
+                  itemType: 'vehicle',
+                  name: vehicle.name,
+                  subtitle: `${brand.name} · ${vehicle.vehicleModel}`,
+                  image: vehicle.thumbnail || '',
                   basePrice: vehicle.basePrice,
+                  quantity: 1,
                   customizations,
                 });
                 toast.success(`${vehicle.name} added to cart!`);

@@ -48,8 +48,15 @@ export interface CustomizationAsset {
   description: string;
   price: number;
   image: string;
-  compatibility: string[];
+  compatibility: Array<string | AssetCompatibility>;
   createdAt: Date;
+}
+
+export interface AssetCompatibility {
+  id: string;
+  name: string;
+  vehicleModel?: string;
+  thumbnail?: string;
 }
 
 export interface DashboardMetrics {
@@ -71,12 +78,13 @@ export interface CartCustomization {
 }
 
 export interface CartItem {
-  vehicleId: string;
-  vehicleName: string;
-  vehicleModel: string;
-  brandName: string;
-  thumbnail: string;
+  itemId: string;
+  itemType: 'vehicle' | 'accessory';
+  name: string;
+  subtitle?: string;
+  image?: string;
   basePrice: number;
+  quantity: number;
   customizations: CartCustomization[];
   customizationTotal: number;
   itemTotal: number;

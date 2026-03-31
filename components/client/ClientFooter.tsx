@@ -31,8 +31,8 @@ export function ClientFooter() {
                 </Link>
               </li>
               <li>
-                <Link href="/customize" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-                  Customize
+                <Link href="/shop" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+                  Shop
                 </Link>
               </li>
             </ul>

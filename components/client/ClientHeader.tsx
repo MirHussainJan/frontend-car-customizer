@@ -63,10 +63,10 @@ export function ClientHeader() {
             Vehicles
           </Link>
           <Link
-            href="/customize"
+            href="/shop"
             className="text-sm text-muted-foreground hover:text-foreground transition-colors"
           >
-            Customize
+            Shop
           </Link>
         </div>
 
@@ -161,11 +161,11 @@ export function ClientHeader() {
               Vehicles
             </Link>
             <Link
-              href="/customize"
+              href="/shop"
               className="text-sm text-foreground hover:text-primary transition-colors"
               onClick={() => setIsMenuOpen(false)}
             >
-              Customize
+              Shop
             </Link>
             {isAuthenticated ? (
               <>

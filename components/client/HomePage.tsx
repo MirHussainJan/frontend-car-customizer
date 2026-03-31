@@ -8,6 +8,7 @@ import { ArrowRight, Sparkles, Zap, Palette, Gauge, Loader2 } from 'lucide-react
 import { getAllBrands, getAllVehicles } from '@/lib/api';
 import { Brand, Vehicle } from '@/lib/types';
 import { toast } from 'sonner';
+import { VehicleModelPreview } from '@/components/client/VehicleModelPreview';
 
 export function HomePage() {
   const [brands, setBrands] = useState<Brand[]>([]);
@@ -177,9 +178,10 @@ export function HomePage() {
                 <div className="group h-full flex flex-col justify-between relative rounded-2xl border border-border overflow-hidden bg-card hover:border-primary/50 transition-all duration-300">
                   {/* Vehicle Image Background */}
                   <div className="relative h-64 bg-gradient-to-br from-primary/10 via-background to-accent/10 overflow-hidden flex items-center justify-center">
-                    <div className="text-7xl group-hover:scale-125 transition-transform duration-300">
-                      {vehicle.thumbnail}
-                    </div>
+                    <VehicleModelPreview
+                      modelUrl={vehicle.modelUrl}
+                      vehicleName={vehicle.name}
+                    />
                   </div>
 
                   {/* Content */}

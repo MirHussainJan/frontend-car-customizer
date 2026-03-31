@@ -7,6 +7,7 @@ import { useState, useEffect } from 'react';
 import { getAllVehicles, getAllBrands } from '@/lib/api';
 import { Vehicle, Brand } from '@/lib/types';
 import { toast } from 'sonner';
+import { VehicleModelPreview } from '@/components/client/VehicleModelPreview';
 
 export function VehicleCatalog() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -165,7 +166,10 @@ export function VehicleCatalog() {
                         {/* Image Area */}
                         <div className="relative h-56 bg-muted border-b border-border flex items-center justify-center overflow-hidden">
                           <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-accent/10 group-hover:from-primary/20 group-hover:to-accent/20 transition-all" />
-                          <div className="relative text-6xl">{brand?.logo || '🚗'}</div>
+                          <VehicleModelPreview
+                            modelUrl={vehicle.modelUrl}
+                            vehicleName={vehicle.name}
+                          />
                         </div>
 
                         {/* Content */}
